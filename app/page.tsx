@@ -11,6 +11,8 @@ import {
 import { optimizeCutList } from "./lib/cutting-optimizer";
 
 type PergolaResult = ReturnType<typeof calculatePergola>;
+type StockLengthOption = 6000 | 6500 | 7000;
+type StockMode = "auto" | StockLengthOption;
 
 const pageStyle: React.CSSProperties = {
   minHeight: "100vh",
@@ -306,6 +308,41 @@ function printPage() {
   }
 }
 
+function chooseBestOptimization(
+  result: PergolaResult | null,
+  mode: StockMode
+) {
+  if (!result) return null;
+
+  if (mode !== "auto") {
+    return {
+      selectedStockLength: mode,
+      optimization: optimizeCutList(result.cutList, mode),
+    };
+  }
+
+  const candidates: StockLengthOption[] = [6000, 6500, 7000];
+
+  const evaluated = candidates.map((length) => ({
+    selectedStockLength: length,
+    optimization: optimizeCutList(result.cutList, length),
+  }));
+
+  evaluated.sort((a, b) => {
+    if (a.optimization.totalRemainingLength !== b.optimization.totalRemainingLength) {
+      return a.optimization.totalRemainingLength - b.optimization.totalRemainingLength;
+    }
+
+    if (a.optimization.totalBars !== b.optimization.totalBars) {
+      return a.optimization.totalBars - b.optimization.totalBars;
+    }
+
+    return b.optimization.overallUtilizationPercent - a.optimization.overallUtilizationPercent;
+  });
+
+  return evaluated[0];
+}
+
 export default function Home() {
   const [length, setLength] = useState("");
   const [width, setWidth] = useState("");
@@ -313,6 +350,7 @@ export default function Home() {
   const [divisionProfileName, setDivisionProfileName] = useState("T 120/40");
   const [shadingProfileName, setShadingProfileName] = useState("מלבן 70/20");
   const [shadingGap, setShadingGap] = useState("10");
+  const [stockMode, setStockMode] = useState<StockMode>(6000);
   const [result, setResult] = useState<PergolaResult | null>(null);
   const [error, setError] = useState("");
 
@@ -351,10 +389,13 @@ export default function Home() {
     [result]
   );
 
-  const optimization = useMemo(
-    () => (result ? optimizeCutList(result.cutList, 6000) : null),
-    [result]
+  const bestOptimizationResult = useMemo(
+    () => chooseBestOptimization(result, stockMode),
+    [result, stockMode]
   );
+
+  const optimization = bestOptimizationResult?.optimization ?? null;
+  const selectedStockLength = bestOptimizationResult?.selectedStockLength ?? null;
 
   const totalOrderMeters = useMemo(
     () =>
@@ -384,12 +425,16 @@ export default function Home() {
               <span style={heroStatValueStyle}>פרגולות</span>
             </div>
             <div style={heroStatStyle}>
-              <span style={heroStatLabelStyle}>אופטימיזציה</span>
-              <span style={heroStatValueStyle}>6000 מ״מ</span>
+              <span style={heroStatLabelStyle}>מצב מוט נבחר</span>
+              <span style={heroStatValueStyle}>
+                {stockMode === "auto" ? "אוטומטי" : `${stockMode} מ״מ`}
+              </span>
             </div>
             <div style={heroStatStyle}>
-              <span style={heroStatLabelStyle}>מותג</span>
-              <span style={heroStatValueStyle}>ALUMAX</span>
+              <span style={heroStatLabelStyle}>מוט בשימוש</span>
+              <span style={heroStatValueStyle}>
+                {selectedStockLength ? `${selectedStockLength} מ״מ` : "-"}
+              </span>
             </div>
           </div>
         </section>
@@ -474,6 +519,27 @@ export default function Home() {
                 onChange={(e) => setShadingGap(e.target.value)}
               />
             </div>
+
+            <div style={fieldWrapStyle}>
+              <label style={labelStyle}>אורך מוט חומר גלם</label>
+              <select
+                style={selectStyle}
+                value={String(stockMode)}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (value === "auto") {
+                    setStockMode("auto");
+                  } else {
+                    setStockMode(Number(value) as StockLengthOption);
+                  }
+                }}
+              >
+                <option value="6000">6000 מ״מ</option>
+                <option value="6500">6500 מ״מ</option>
+                <option value="7000">7000 מ״מ</option>
+                <option value="auto">אוטומטי</option>
+              </select>
+            </div>
           </div>
 
           <div style={actionRowStyle}>
@@ -508,7 +574,7 @@ export default function Home() {
                 <span style={summaryValueStyle}>{totalOrderMeters.toFixed(2)}</span>
               </div>
               <div style={summaryCardStyle}>
-                <span style={summaryLabelStyle}>סה״כ מוטות 6000</span>
+                <span style={summaryLabelStyle}>סה״כ מוטות</span>
                 <span style={summaryValueStyle}>
                   {optimization ? optimization.totalBars : 0}
                 </span>
@@ -695,26 +761,51 @@ export default function Home() {
 
             <section style={sectionSpacingStyle}>
               <div style={sectionCardStyle}>
-                <h3 style={sectionTitleStyle}>רשימת חומר להזמנה</h3>
+                <h3 style={sectionTitleStyle}>רשימת חומר להזמנה (לפי ניצול מוטות)</h3>
+
+                {selectedStockLength && (
+                  <p style={{ margin: "0 0 10px", color: "#334155", fontWeight: 700 }}>
+                    אורך מוט בשימוש: {selectedStockLength} מ״מ
+                    {stockMode === "auto" ? " (נבחר אוטומטית)" : ""}
+                  </p>
+                )}
+
                 <div style={tableWrapStyle}>
                   <table style={tableStyle}>
                     <thead>
                       <tr>
                         <th style={cellHeaderStyle}>פרופיל</th>
                         <th style={cellHeaderStyle}>סה״כ יחידות</th>
-                        <th style={cellHeaderStyle}>סה״כ אורך (מ״מ)</th>
-                        <th style={cellHeaderStyle}>סה״כ אורך (מ׳)</th>
+                        <th style={cellHeaderStyle}>אורך מוט</th>
+                        <th style={cellHeaderStyle}>כמות מוטות להזמנה</th>
+                        <th style={cellHeaderStyle}>אורך מנוצל</th>
+                        <th style={cellHeaderStyle}>שארית כוללת</th>
+                        <th style={cellHeaderStyle}>ניצול</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {materialSummary.map((item) => (
-                        <tr key={item.profileName}>
-                          <td style={cellStyle}>{item.profileName}</td>
-                          <td style={cellStyle}>{item.totalPieces}</td>
-                          <td style={cellStyle}>{item.totalLengthMm}</td>
-                          <td style={cellStyle}>{item.totalLengthM}</td>
-                        </tr>
-                      ))}
+                      {optimization?.profiles.map((profile) => {
+                        const totalPieces = profile.bars.reduce(
+                          (sum, bar) => sum + bar.pieces.length,
+                          0
+                        );
+
+                        return (
+                          <tr key={profile.profileName}>
+                            <td style={cellStyle}>{profile.profileName}</td>
+                            <td style={cellStyle}>{totalPieces}</td>
+                            <td style={cellStyle}>{selectedStockLength} מ״מ</td>
+                            <td style={cellStyle}>
+                              <strong>{profile.totalBars}</strong>
+                            </td>
+                            <td style={cellStyle}>{profile.totalUsedLength} מ״מ</td>
+                            <td style={cellStyle}>{profile.totalRemainingLength} מ״מ</td>
+                            <td style={cellStyle}>
+                              <strong>{profile.utilizationPercent}%</strong>
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
@@ -723,7 +814,9 @@ export default function Home() {
 
             <section style={sectionSpacingStyle}>
               <div style={sectionCardStyle}>
-                <h3 style={sectionTitleStyle}>אופטימיזציית חיתוך למוטות 6000 מ״מ</h3>
+                <h3 style={sectionTitleStyle}>
+                  אופטימיזציית חיתוך למוטות {selectedStockLength ?? "-"} מ״מ
+                </h3>
 
                 {optimization && (
                   <>
