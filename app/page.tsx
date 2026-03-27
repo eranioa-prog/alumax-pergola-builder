@@ -1,148 +1,140 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
+import html2canvas from "html2canvas";
+import jsPDF from "jspdf";
 
-/* ================= הדמיה ================= */
+export default function Page() {
+  const [width, setWidth] = useState(5000);
+  const [depth, setDepth] = useState(3000);
 
-function PergolaPreview({
-  width,
-  length,
-  fields,
-  divisions,
-}: {
-  width: number;
-  length: number;
-  fields: number;
-  divisions: number;
-}) {
-  const svgWidth = 800;
-  const svgHeight = 400;
+  const techRef = useRef<HTMLDivElement>(null);
+  const marketingRef = useRef<HTMLDivElement>(null);
 
-  const scale = Math.min(600 / length, 300 / width);
+  // חישוב חלוקות
+  const frameWidth = 40;
+  const divisionWidth = 40;
 
-  const drawLength = length * scale;
-  const drawWidth = width * scale;
-
-  const startX = (svgWidth - drawLength) / 2;
-  const startY = (svgHeight - drawWidth) / 2;
-
-  const fieldWidth = drawLength / fields;
-
-  return (
-    <div style={{ marginTop: 30 }}>
-      <h2>שרטוט פרגולה</h2>
-
-      <svg
-        width="100%"
-        height="400"
-        viewBox={`0 0 ${svgWidth} ${svgHeight}`}
-        style={{ background: "#f1f5f9", borderRadius: 10 }}
-      >
-        {/* מסגרת */}
-        <rect
-          x={startX}
-          y={startY}
-          width={drawLength}
-          height={drawWidth}
-          fill="white"
-          stroke="black"
-          strokeWidth="4"
-        />
-
-        {/* חלוקות */}
-        {Array.from({ length: divisions }).map((_, i) => {
-          const x = startX + fieldWidth * (i + 1);
-          return (
-            <line
-              key={i}
-              x1={x}
-              y1={startY}
-              x2={x}
-              y2={startY + drawWidth}
-              stroke="blue"
-              strokeWidth="2"
-            />
-          );
-        })}
-
-        {/* שדות */}
-        {Array.from({ length: fields }).map((_, i) => {
-          const x = startX + fieldWidth * i + fieldWidth / 2;
-          return (
-            <text
-              key={i}
-              x={x}
-              y={startY + 20}
-              textAnchor="middle"
-              fontSize="12"
-            >
-              שדה {i + 1}
-            </text>
-          );
-        })}
-      </svg>
-    </div>
-  );
-}
-
-/* ================= חישוב ================= */
-
-function calculatePergola(length: number) {
-  const raw = length / 1000;
-
-  const fields =
-    raw % 1 <= 0.5 ? Math.floor(raw) : Math.ceil(raw);
-
+  const netWidth = width - frameWidth * 2;
+  const fields = Math.round(netWidth / 1000);
   const divisions = fields - 1;
 
-  return { fields, divisions };
-}
+  const fieldWidth = netWidth / fields;
 
-/* ================= דף ראשי ================= */
+  // חישוב הצללות
+  const shadingWidth = 100;
+  const gap = 10;
 
-export default function Home() {
-  const [length, setLength] = useState("");
-  const [width, setWidth] = useState("");
-  const [result, setResult] = useState<any>(null);
+  const netDepth = depth - frameWidth * 2;
+  const shadingCount = Math.floor(netDepth / (shadingWidth + gap));
 
-  const handleCalculate = () => {
-    if (!length || !width) return;
+  // ================= PDF =================
 
-    const calc = calculatePergola(Number(length));
-    setResult(calc);
+  const generatePDF = async (type: "tech" | "marketing") => {
+    const element = type === "tech" ? techRef.current : marketingRef.current;
+    if (!element) return;
+
+    const canvas = await html2canvas(element);
+    const img = canvas.toDataURL("image/png");
+
+    const pdf = new jsPDF("l", "mm", "a4");
+    pdf.addImage(img, "PNG", 10, 10, 280, 150);
+
+    pdf.save(type === "tech" ? "pergola-tech.pdf" : "pergola-marketing.pdf");
   };
 
   return (
-    <main style={{ padding: 20, direction: "rtl", fontFamily: "Arial" }}>
+    <div style={{ padding: 20, fontFamily: "Arial" }}>
       <h1>ALUMAX - מחשבון פרגולות</h1>
 
-      <div style={{ marginBottom: 20 }}>
+      {/* קלטים */}
+      <div style={{ display: "flex", gap: 20 }}>
         <input
-          placeholder="אורך"
-          value={length}
-          onChange={(e) => setLength(e.target.value)}
-        />
-        <input
-          placeholder="רוחב"
+          type="number"
           value={width}
-          onChange={(e) => setWidth(e.target.value)}
+          onChange={(e) => setWidth(Number(e.target.value))}
         />
-        <button onClick={handleCalculate}>חשב</button>
+        <input
+          type="number"
+          value={depth}
+          onChange={(e) => setDepth(Number(e.target.value))}
+        />
       </div>
 
-      {result && (
-        <>
-          <p>שדות: {result.fields}</p>
-          <p>חלוקות: {result.divisions}</p>
+      <button onClick={() => generatePDF("tech")}>PDF טכני</button>
+      <button onClick={() => generatePDF("marketing")}>
+        PDF שיווקי
+      </button>
 
-          <PergolaPreview
-            width={Number(width)}
-            length={Number(length)}
-            fields={result.fields}
-            divisions={result.divisions}
+      {/* ================= שרטוט עליון ================= */}
+      <div
+        ref={techRef}
+        style={{
+          marginTop: 30,
+          border: "2px solid black",
+          width: 600,
+          height: 300,
+          position: "relative",
+        }}
+      >
+        {/* חלוקות */}
+        {Array.from({ length: divisions }).map((_, i) => (
+          <div
+            key={i}
+            style={{
+              position: "absolute",
+              left: ((i + 1) * 600) / fields,
+              top: 0,
+              bottom: 0,
+              width: 2,
+              background: "blue",
+            }}
           />
-        </>
-      )}
-    </main>
+        ))}
+
+        {/* הצללות */}
+        {Array.from({ length: shadingCount }).map((_, i) => (
+          <div
+            key={i}
+            style={{
+              position: "absolute",
+              top: (i * 300) / shadingCount,
+              left: 0,
+              right: 0,
+              height: 2,
+              background: "#555",
+            }}
+          />
+        ))}
+      </div>
+
+      {/* ================= שרטוט חזית ================= */}
+      <div
+        ref={marketingRef}
+        style={{
+          marginTop: 40,
+          border: "2px solid black",
+          width: 600,
+          height: 200,
+          position: "relative",
+          background: "#f5f5f5",
+        }}
+      >
+        {/* קורות */}
+        {Array.from({ length: shadingCount }).map((_, i) => (
+          <div
+            key={i}
+            style={{
+              position: "absolute",
+              left: (i * 600) / shadingCount,
+              top: 0,
+              bottom: 0,
+              width: 4,
+              background: "#222",
+            }}
+          />
+        ))}
+      </div>
+    </div>
   );
 }
