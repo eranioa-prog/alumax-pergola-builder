@@ -1,11 +1,6 @@
-export type ProfileOption = {
-  name: string;
-  width: number;
-  height: number;
-};
-
+// ================= TYPES =================
 export type CutItem = {
-  group: "מסגרת" | "חלוקות" | "הצללות";
+  group: "מסגרת" | "חלוקות" | "הצללות" | "השלמות";
   profileName: string;
   quantity: number;
   length: number;
@@ -13,277 +8,224 @@ export type CutItem = {
   note?: string;
 };
 
-export type MaterialSummaryItem = {
-  profileName: string;
-  totalPieces: number;
-  totalLengthMm: number;
-  totalLengthM: number;
-};
-
-export const frameProfiles: ProfileOption[] = [
-  { name: "הייטק", width: 150, height: 50 },
-  { name: "דאבל T 142", width: 142, height: 50 },
-  { name: "דאבל T 122", width: 122, height: 50 },
-  { name: "חלק 122", width: 122, height: 50 },
-  { name: "מלבן 200/50", width: 200, height: 50 },
-  { name: "מלבן 150/50", width: 150, height: 50 },
-  { name: "מלבן 120/40", width: 120, height: 40 },
-  { name: "מלבן 100/40", width: 100, height: 40 },
-  { name: "מלבן 80/40", width: 80, height: 40 },
-];
-
-export const divisionProfiles: ProfileOption[] = [
-  { name: "T 120/40", width: 120, height: 40 },
-  { name: "T 100/40", width: 100, height: 40 },
-];
-
-export const shadingProfiles: ProfileOption[] = [
-  { name: "מלבן 120/20", width: 120, height: 20 },
-  { name: "מלבן 100/20", width: 100, height: 20 },
-  { name: "מלבן 90/20", width: 90, height: 20 },
-  { name: "מלבן 70/20", width: 70, height: 20 },
-  { name: "מלבן 40/20", width: 40, height: 20 },
-  { name: "מלבן 20/20", width: 20, height: 20 },
-  { name: "רפפה Z", width: 90, height: 20 },
-];
-
-type CalculatePergolaParams = {
+type Profile = {
+  name: string;
   width: number;
-  length: number;
-  frameProfileName: string;
-  divisionProfileName: string;
-  shadingProfileName: string;
-  shadingGap?: number;
 };
 
-function getFrameEffectiveWidth(profile: ProfileOption) {
-  return Math.min(profile.width, profile.height);
+// ================= PROFILES =================
+export const frameProfiles: Profile[] = [
+  { name: "מלבן 200/50", width: 50 },
+  { name: "מלבן 150/50", width: 50 },
+  { name: "מלבן 120/40", width: 40 },
+  { name: "מלבן 100/40", width: 40 },
+  { name: "מלבן 80/40", width: 40 },
+  { name: "דאבל T 142", width: 40 },
+  { name: "דאבל T122", width: 40 },
+  { name: "חלק 122", width: 40 },
+  { name: "הייטק", width: 40 },
+];
+
+export const divisionProfiles: Profile[] = [
+  { name: "T 120/40", width: 40 },
+  { name: "T 100/40", width: 40 },
+];
+
+export const shadingProfiles: Profile[] = [
+  { name: "מלבן 120/20", width: 120 },
+  { name: "מלבן 100/20", width: 100 },
+  { name: "מלבן 90/20", width: 90 },
+  { name: "מלבן 70/20", width: 70 },
+  { name: "מלבן 40/20", width: 40 },
+  { name: "מלבן 20/20", width: 20 },
+];
+
+// ================= HELPERS =================
+function getProfileWidth(
+  profiles: Profile[],
+  name: string,
+  fallback: number
+): number {
+  const p = profiles.find((x) => x.name === name);
+  return p ? p.width : fallback;
 }
 
-function getDivisionEffectiveWidth(profile: ProfileOption) {
-  return Math.min(profile.width, profile.height);
-}
+function chooseFields(netLength: number): number {
+  let best = 1;
+  let bestScore = Infinity;
 
-function getShadingEffectiveWidth(profile: ProfileOption) {
-  if (profile.name === "רפפה Z") return 90;
-  return Math.max(profile.width, profile.height);
-}
+  for (let i = 1; i <= 20; i++) {
+    const size = netLength / i;
 
-function roundFieldsByRule(length: number) {
-  const raw = length / 1000;
-  const whole = Math.floor(raw);
-  const remainder = raw - whole;
+    if (size >= 900 && size <= 1200) {
+      const score = Math.abs(size - 1000);
 
-  if (remainder <= 0.5) {
-    return Math.max(1, whole);
+      if (score < bestScore) {
+        bestScore = score;
+        best = i;
+      }
+    }
   }
 
-  return Math.max(1, whole + 1);
+  return best;
 }
 
+// ================= MAIN =================
 export function calculatePergola({
-  width,
   length,
+  width,
   frameProfileName,
   divisionProfileName,
   shadingProfileName,
-  shadingGap = 10,
-}: CalculatePergolaParams) {
-  const frameProfile = frameProfiles.find((p) => p.name === frameProfileName);
-  const divisionProfile = divisionProfiles.find(
-    (p) => p.name === divisionProfileName
-  );
-  const shadingProfile = shadingProfiles.find(
-    (p) => p.name === shadingProfileName
-  );
+  shadingGap,
+}: any) {
+  const frameWidth = getProfileWidth(frameProfiles, frameProfileName, 40);
+  const divisionWidth = getProfileWidth(divisionProfiles, divisionProfileName, 40);
+  const shadingWidth = getProfileWidth(shadingProfiles, shadingProfileName, 70);
+  const gap = Number.isFinite(shadingGap) ? shadingGap : 10;
 
-  if (!frameProfile || !divisionProfile || !shadingProfile) {
-    throw new Error("אחד הפרופילים שנבחרו לא נמצא");
-  }
+  // ================= שדות =================
+  const netLength = length - 2 * frameWidth;
 
-  const frameWidth = getFrameEffectiveWidth(frameProfile);
-  const divisionWidth = getDivisionEffectiveWidth(divisionProfile);
-  const shadingWidth = getShadingEffectiveWidth(shadingProfile);
+  const fields = chooseFields(netLength);
+  const divisions = fields - 1;
 
-  // מספר שדות לפי כלל העיגול שלך
-  const fields = roundFieldsByRule(length);
+  const fieldOpening =
+    (length - 2 * frameWidth - divisions * divisionWidth) / fields;
 
-  // מספר חלוקות = מספר שדות - 1
-  const divisions = Math.max(0, fields - 1);
-
-  // מרווח חלוקה סימטרי
-  const divisionSpacing = (length - 2 * frameWidth) / fields;
-
-  // אורך נטו לשדות הצללה
-  const netLengthForShading =
-    length - 2 * frameWidth - divisions * divisionWidth;
-
-  // אורך שדה לפני הפחתה
-  const shadingFieldLength = netLengthForShading / fields;
-
-  // אורך חיתוך הצללה
-  const shadingCutLength = shadingFieldLength - 15;
-
-  // רוחב נטו לכמות הצללות בכל שדה
-  const netWidthForShadingCount = width - 2 * frameWidth;
-
-  // כמות הצללות בכל שדה
-  const shadingPiecesPerField = Math.floor(
-    netWidthForShadingCount / (shadingWidth + shadingGap)
-  );
-
-  // רוחב מנוצל בכל שדה
-  const usedWidthPerField =
-    shadingPiecesPerField * (shadingWidth + shadingGap);
-
-  // שארית לכל שדה
-  const shadingRemainderPerField =
-    netWidthForShadingCount - usedWidthPerField;
-
-  // סה"כ הצללות
-  const totalShadingPieces = shadingPiecesPerField * fields;
-
-  // אורך פרופיל חלוקה
+  // ================= חלוקות =================
   const divisionCutLength = width - 2 * frameWidth;
 
-  // אביזר לכל שדה:
-  // רגיל -> זווית 30/30
-  // רפפה Z -> פרופיל 20/40
-  const isZLouver = shadingProfile.name === "רפפה Z";
-  const accessoryProfileName = isZLouver ? "פרופיל 20/40" : "זווית 30/30";
-  const accessoryLengthPerField = divisionCutLength - 20;
-  const accessoryPiecesTotal = fields * 2;
+  // ================= הצללות =================
+  const netShadingLength = fieldOpening;
 
-  // השלמת שארית:
-  // אם השארית מספיקה ל-40/20 + רווח 10 -> 40/20
-  // אחרת אם השארית מספיקה ל-20/20 + רווח 10 -> 20/20
+  const shadingCutLength = netShadingLength - 15;
+
+  const pitch = shadingWidth + gap;
+
+  const shadingPiecesPerField = Math.max(
+    Math.floor(divisionCutLength / pitch),
+    0
+  );
+
+  const totalShadingPieces = shadingPiecesPerField * fields;
+
+  const usedWidth =
+    shadingPiecesPerField > 0
+      ? shadingPiecesPerField * shadingWidth +
+        (shadingPiecesPerField - 1) * gap
+      : 0;
+
+  const remainder = Math.max(divisionCutLength - usedWidth, 0);
+
+  // ================= השלמות =================
   let completionProfileName = "";
-  let completionPiecesTotal = 0;
-  let completionProfileWidth = 0;
+  let completionWidth = 0;
 
-  if (shadingRemainderPerField >= 50) {
+  if (remainder >= 40) {
     completionProfileName = "מלבן 40/20";
-    completionPiecesTotal = fields;
-    completionProfileWidth = 40;
-  } else if (shadingRemainderPerField >= 30) {
+    completionWidth = 40;
+  } else if (remainder >= 20) {
     completionProfileName = "מלבן 20/20";
-    completionPiecesTotal = fields;
-    completionProfileWidth = 20;
+    completionWidth = 20;
   }
 
-  const hasCompletionProfile = completionPiecesTotal > 0;
+  const hasCompletionProfile = completionProfileName !== "";
+  const completionPiecesTotal = hasCompletionProfile ? fields : 0;
 
-  const finalRemainderPerField = hasCompletionProfile
-    ? shadingRemainderPerField - (completionProfileWidth + shadingGap)
-    : shadingRemainderPerField;
-
-  const cutList = [
+  // ================= CUT LIST =================
+  const cutList: CutItem[] = [
     {
       group: "מסגרת",
-      profileName: frameProfile.name,
+      profileName: frameProfileName,
       quantity: 2,
-      length: Number(length.toFixed(1)),
+      length,
       cutType: "45°",
-      note: "קורות מסגרת לפי אורך הפרגולה",
     },
     {
       group: "מסגרת",
-      profileName: frameProfile.name,
+      profileName: frameProfileName,
       quantity: 2,
-      length: Number(width.toFixed(1)),
+      length: width,
       cutType: "45°",
-      note: "קורות מסגרת לפי רוחב הפרגולה",
     },
     {
       group: "חלוקות",
-      profileName: divisionProfile.name,
+      profileName: divisionProfileName,
       quantity: divisions,
-      length: Number(divisionCutLength.toFixed(1)),
+      length: Math.round(divisionCutLength),
       cutType: "90°",
-      note: "פרופילי חלוקה ישרים",
     },
     {
       group: "הצללות",
-      profileName: shadingProfile.name,
+      profileName: shadingProfileName,
       quantity: totalShadingPieces,
-      length: Number(shadingCutLength.toFixed(1)),
+      length: Math.round(shadingCutLength),
       cutType: "90°",
-      note: `סה"כ ${shadingPiecesPerField} בכל שדה × ${fields} שדות`,
     },
-    {
-      group: "הצללות",
-      profileName: accessoryProfileName,
-      quantity: accessoryPiecesTotal,
-      length: Number(accessoryLengthPerField.toFixed(1)),
-      cutType: "90°",
-      note: isZLouver
-        ? `2 יח' לכל שדה × ${fields} שדות עבור רפפה Z`
-        : `2 יח' לכל שדה × ${fields} שדות עבור הצללה רגילה`,
-    },
-    {
-      group: "הצללות",
+  ];
+
+  if (hasCompletionProfile) {
+    cutList.push({
+      group: "השלמות",
       profileName: completionProfileName,
       quantity: completionPiecesTotal,
-      length: Number(shadingCutLength.toFixed(1)),
+      length: Math.round(shadingCutLength),
       cutType: "90°",
-      note: hasCompletionProfile
-        ? `פרופיל השלמה אחד לכל שדה לפי שארית ${Number(
-            shadingRemainderPerField.toFixed(1)
-          )} מ״מ`
-        : "",
-    },
-  ] satisfies CutItem[];
+    });
+  }
 
   return {
-    frameWidth: Number(frameWidth.toFixed(1)),
-    divisionWidth: Number(divisionWidth.toFixed(1)),
-    shadingWidth: Number(shadingWidth.toFixed(1)),
     fields,
     divisions,
-    divisionSpacing: Number(divisionSpacing.toFixed(1)),
-    netLengthForShading: Number(netLengthForShading.toFixed(1)),
-    shadingFieldLength: Number(shadingFieldLength.toFixed(1)),
-    shadingCutLength: Number(shadingCutLength.toFixed(1)),
-    netWidthForShadingCount: Number(netWidthForShadingCount.toFixed(1)),
+
+    frameWidth,
+    divisionWidth,
+    shadingWidth,
+
+    fieldOpeningMm: Math.round(fieldOpening),
+
+    // 👇 כאן התיקון האמיתי
+    netShadingLength: Math.round(netShadingLength),
+    shadingNetLength: Math.round(netShadingLength),
+
+    shadingCutLength: Math.round(shadingCutLength),
     shadingPiecesPerField,
-    usedWidthPerField: Number(usedWidthPerField.toFixed(1)),
-    shadingRemainderPerField: Number(shadingRemainderPerField.toFixed(1)),
-    finalRemainderPerField: Number(finalRemainderPerField.toFixed(1)),
+    totalShadingPieces,
+    shadingRemainderPerField: Math.round(remainder),
+
     hasCompletionProfile,
     completionProfileName,
     completionPiecesTotal,
-    totalShadingPieces,
-    shadingGap,
-    divisionCutLength: Number(divisionCutLength.toFixed(1)),
-    accessoryLengthPerField: Number(accessoryLengthPerField.toFixed(1)),
-    accessoryPiecesTotal,
-    isZLouver,
+    completionWidth: Math.round(completionWidth),
+
+    divisionCutLength: Math.round(divisionCutLength),
+
     cutList,
   };
 }
 
-export function summarizeMaterials(cutList: CutItem[]): MaterialSummaryItem[] {
-  const summaryMap = new Map<string, MaterialSummaryItem>();
+// ================= SUMMARY =================
+export function summarizeMaterials(cutList: CutItem[]) {
+  const map = new Map();
 
-  for (const item of cutList) {
-    const existing = summaryMap.get(item.profileName);
-    const itemTotalLength = item.quantity * item.length;
-
-    if (existing) {
-      existing.totalPieces += item.quantity;
-      existing.totalLengthMm += itemTotalLength;
-      existing.totalLengthM = Number((existing.totalLengthMm / 1000).toFixed(2));
-    } else {
-      summaryMap.set(item.profileName, {
+  cutList.forEach((item) => {
+    if (!map.has(item.profileName)) {
+      map.set(item.profileName, {
         profileName: item.profileName,
-        totalPieces: item.quantity,
-        totalLengthMm: Number(itemTotalLength.toFixed(1)),
-        totalLengthM: Number((itemTotalLength / 1000).toFixed(2)),
+        totalPieces: 0,
+        totalLengthMm: 0,
       });
     }
-  }
 
-  return Array.from(summaryMap.values()).sort((a, b) =>
-    a.profileName.localeCompare(b.profileName, "he")
-  );
+    const obj = map.get(item.profileName);
+
+    obj.totalPieces += item.quantity;
+    obj.totalLengthMm += item.quantity * item.length;
+  });
+
+  return Array.from(map.values()).map((x: any) => ({
+    ...x,
+    totalLengthM: (x.totalLengthMm / 1000).toFixed(2),
+  }));
 }

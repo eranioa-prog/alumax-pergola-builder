@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
+import dynamic from "next/dynamic";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 import {
@@ -11,6 +12,10 @@ import {
   shadingProfiles,
 } from "./lib/pergola-calculator";
 import { optimizeCutList } from "./lib/cutting-optimizer";
+
+const Pergola3D = dynamic(() => import("./components/Pergola3D"), {
+  ssr: false,
+});
 
 type PergolaResult = ReturnType<typeof calculatePergola>;
 type StockLengthOption = 6000 | 6500 | 7000;
@@ -936,7 +941,7 @@ export default function Home() {
         <section style={heroStyle}>
           <h1 style={heroTitleStyle}>ALUMAX Pergola Builder</h1>
           <p style={heroSubtitleStyle}>
-            מערכת חישוב, שרטוט, רשימות חיתוך, רשימות הזמנה ואופטימיזציית חומר.
+            מערכת חישוב, שרטוט, רשימות חיתוך, רשימות הזמנה, אופטימיזציית חומר והדמיה תלת־ממדית.
           </p>
         </section>
 
@@ -1141,19 +1146,19 @@ export default function Home() {
                     <h3 style={subTitleStyle}>פרופילים</h3>
                     <div style={metricGridStyle}>
                       <div style={metricItemStyle}>
-                        <span style={metricLabelStyle}>רוחב פרופיל מסגרת</span>
+                        <span style={metricLabelStyle}>רוחב אפקטיבי מסגרת</span>
                         <span style={metricValueStyle}>
                           {result.frameWidth} מ״מ
                         </span>
                       </div>
                       <div style={metricItemStyle}>
-                        <span style={metricLabelStyle}>רוחב פרופיל חלוקה</span>
+                        <span style={metricLabelStyle}>רוחב אפקטיבי חלוקה</span>
                         <span style={metricValueStyle}>
                           {result.divisionWidth} מ״מ
                         </span>
                       </div>
                       <div style={metricItemStyle}>
-                        <span style={metricLabelStyle}>רוחב פרופיל הצללה</span>
+                        <span style={metricLabelStyle}>רוחב אפקטיבי הצללה</span>
                         <span style={metricValueStyle}>
                           {result.shadingWidth} מ״מ
                         </span>
@@ -1454,6 +1459,31 @@ export default function Home() {
                 ))}
               </section>
             </div>
+
+            <section style={{ ...cardStyle, marginTop: 20 }}>
+              <h2 style={sectionTitleStyle}>הדמיה תלת־ממדית</h2>
+              <p style={{ marginTop: 0, color: "#64748b" }}>
+                הדמיה אינטראקטיבית לתצוגה במסך. אינה נכללת ב־PDF כדי לשמור על ייצוא יציב ונקי.
+              </p>
+
+              <div
+                style={{
+                  width: "100%",
+                  height: 480,
+                  borderRadius: 16,
+                  overflow: "hidden",
+                  border: "1px solid #e5e7eb",
+                  background: "#fff",
+                }}
+              >
+                <Pergola3D
+                  length={Number(length)}
+                  width={Number(width)}
+                  fields={result.fields}
+                  slatCount={result.shadingPiecesPerField}
+                />
+              </div>
+            </section>
 
             <div
               ref={marketingPdfRef}

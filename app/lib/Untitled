@@ -1,0 +1,15 @@
+export function calculatePergola({
+  length,
+  width,
+}: {
+  length: number;
+  width: number;
+}) {
+  const fields = Math.round(length / 1000);
+  const shadingPiecesPerField = Math.round(width / 100);
+
+  return {
+    fields,
+    shadingPiecesPerField,
+  };
+}

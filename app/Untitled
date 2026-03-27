@@ -1,0 +1,132 @@
+"use client";
+
+import dynamic from "next/dynamic";
+import { useState } from "react";
+
+const Pergola3D = dynamic(() => import("./components/Pergola3D"), {
+  ssr: false,
+});
+
+export default function Home() {
+  const [length, setLength] = useState(5000);
+  const [width, setWidth] = useState(3000);
+
+  const frameWidth = 40;
+  const divisionWidth = 40;
+  const slatWidth = 20;
+  const gap = 10;
+
+  // ===== חישוב חלוקות =====
+  const innerLength = length - frameWidth * 2;
+
+  let fields = Math.round(innerLength / 1000);
+  let fieldSize = innerLength / fields;
+
+  // תיקון לטווח 900–1200
+  if (fieldSize < 900) fields--;
+  if (fieldSize > 1200) fields++;
+
+  const divisions = fields - 1;
+
+  // ===== חישוב הצללות =====
+  const netWidth =
+    width - frameWidth * 2 - divisions * divisionWidth;
+
+  const slatCount = Math.floor(
+    netWidth / (slatWidth + gap)
+  );
+
+  const slatLength = fieldSize - 20;
+
+  const totalSlats = slatCount * fields;
+
+  // ===== משקל =====
+  const weightPerMeter = 0.475; // דוגמה 70/20
+  const totalMeters = (slatLength * totalSlats) / 1000;
+  const totalWeight = totalMeters * weightPerMeter;
+
+  const pricePerKg = 30.5;
+  const profit = 1.25;
+  const vat = 1.17;
+
+  const finalPrice =
+    totalWeight * pricePerKg * profit * vat;
+
+  return (
+    <div style={{ padding: 20 }}>
+      <h1>אלומקס - מחשבון פרגולה</h1>
+
+      {/* ===== קלט ===== */}
+      <div>
+        אורך:
+        <input
+          value={length}
+          onChange={(e) => setLength(+e.target.value)}
+        />
+        רוחב:
+        <input
+          value={width}
+          onChange={(e) => setWidth(+e.target.value)}
+        />
+      </div>
+
+      {/* ===== תוצאות ===== */}
+      <h3>שדות</h3>
+      <p>מספר שדות: {fields}</p>
+      <p>רוחב שדה: {Math.round(fieldSize)} מ"מ</p>
+
+      <h3>הצללות</h3>
+      <p>כמות לשדה: {slatCount}</p>
+      <p>סה"כ הצללות: {totalSlats}</p>
+      <p>אורך הצללה: {Math.round(slatLength)} מ"מ</p>
+
+      <h3>משקל ומחיר</h3>
+      <p>משקל כולל: {totalWeight.toFixed(2)} ק"ג</p>
+      <p>מחיר סופי: ₪{finalPrice.toFixed(0)}</p>
+
+      {/* ===== טבלת חיתוכים ===== */}
+      <h3>רשימת חיתוכים</h3>
+      <table border={1}>
+        <thead>
+          <tr>
+            <th>פרופיל</th>
+            <th>אורך</th>
+            <th>כמות</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>מסגרת</td>
+            <td>{length}</td>
+            <td>2</td>
+          </tr>
+          <tr>
+            <td>מסגרת</td>
+            <td>{width}</td>
+            <td>2</td>
+          </tr>
+          <tr>
+            <td>חלוקות</td>
+            <td>{width}</td>
+            <td>{divisions}</td>
+          </tr>
+          <tr>
+            <td>הצללות</td>
+            <td>{Math.round(slatLength)}</td>
+            <td>{totalSlats}</td>
+          </tr>
+        </tbody>
+      </table>
+
+      {/* ===== הדמיה ===== */}
+      <div style={{ height: 400 }}>
+        <Pergola3D
+          length={length}
+          width={width}
+          fields={fields}
+          slatCount={slatCount}
+        />
+      </div>
+    </div>
+  );
+}
