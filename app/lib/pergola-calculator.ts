@@ -105,7 +105,7 @@ export function calculatePergola({
   const divisionWidth = getDivisionEffectiveWidth(divisionProfile);
   const shadingWidth = getShadingEffectiveWidth(shadingProfile);
 
-  // מספר שדות לפי כלל העיגול
+  // מספר שדות לפי כלל העיגול שלך
   const fields = roundFieldsByRule(length);
 
   // מספר חלוקות = מספר שדות - 1
@@ -177,7 +177,7 @@ export function calculatePergola({
     ? shadingRemainderPerField - (completionProfileWidth + shadingGap)
     : shadingRemainderPerField;
 
-  const cutList: CutItem[] = [
+  const cutList = [
     {
       group: "מסגרת",
       profileName: frameProfile.name,
@@ -232,12 +232,12 @@ export function calculatePergola({
           )} מ״מ`
         : "",
     },
-  ].filter((item) => item.quantity > 0);
+  ] satisfies CutItem[];
 
   return {
-    frameWidth,
-    divisionWidth,
-    shadingWidth,
+    frameWidth: Number(frameWidth.toFixed(1)),
+    divisionWidth: Number(divisionWidth.toFixed(1)),
+    shadingWidth: Number(shadingWidth.toFixed(1)),
     fields,
     divisions,
     divisionSpacing: Number(divisionSpacing.toFixed(1)),
