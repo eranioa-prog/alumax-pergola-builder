@@ -97,9 +97,9 @@ export function calculatePergola({
   const divisionCutLength = width - 2 * frameWidth;
 
   // ================= הצללות =================
-  const netShadingLength = fieldOpening;
+  const shadingNetLength = fieldOpening;
 
-  const shadingCutLength = netShadingLength - 15;
+  const shadingCutLength = shadingNetLength - 15;
 
   const pitch = shadingWidth + gap;
 
@@ -186,8 +186,7 @@ export function calculatePergola({
     fieldOpeningMm: Math.round(fieldOpening),
 
     // 👇 כאן התיקון האמיתי
-    netShadingLength: Math.round(netShadingLength),
-    shadingNetLength: Math.round(netShadingLength),
+    shadingNetLength: Math.round(fieldOpening),
 
     shadingCutLength: Math.round(shadingCutLength),
     shadingPiecesPerField,

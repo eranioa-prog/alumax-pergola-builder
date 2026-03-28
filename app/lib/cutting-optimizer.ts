@@ -4,7 +4,7 @@ export type ExpandedCutPiece = {
   profileName: string;
   length: number;
   cutType: "45°" | "90°";
-  sourceGroup: "מסגרת" | "חלוקות" | "הצללות";
+  sourceGroup: "מסגרת" | "חלוקות" | "הצללות" | "השלמות";
   note?: string;
 };
 

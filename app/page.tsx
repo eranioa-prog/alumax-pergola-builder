@@ -1198,7 +1198,7 @@ export default function Home() {
                       <div style={metricItemStyle}>
                         <span style={metricLabelStyle}>אורך נטו להצללה</span>
                         <span style={metricValueStyle}>
-                          {result.netLengthForShading} מ״מ
+                        {result.shadingNetLength} מ"מ
                         </span>
                       </div>
                       <div style={metricItemStyle}>
@@ -1234,7 +1234,7 @@ export default function Home() {
                       <div style={metricItemStyle}>
                         <span style={metricLabelStyle}>שארית סופית</span>
                         <span style={metricValueStyle}>
-                          {result.finalRemainderPerField} מ״מ
+                        {result.shadingRemainderPerField}מ״מ
                         </span>
                       </div>
                       <div style={metricItemStyle}>
@@ -1545,6 +1545,7 @@ export default function Home() {
                 fieldOpeningMm={correctedFieldOpeningMm}
                 shadingCount={result.shadingPiecesPerField}
               />
+
 
               <FrontView
                 overallLength={Number(length)}
