@@ -695,128 +695,6 @@ function TopView({
   );
 }
 
-function FrontView({
-  overallLength,
-  overallWidth,
-  shadingCount,
-}: {
-  overallLength: number;
-  overallWidth: number;
-  shadingCount: number;
-}) {
-  const drawLeft = 80;
-  const drawTop = 70;
-  const drawWidth = 620;
-  const drawHeight = 180;
-  const slatPixelWidth = drawWidth / Math.max(shadingCount, 1);
-
-  return (
-    <div
-      style={{
-        marginTop: 24,
-        width: 780,
-        height: 320,
-        position: "relative",
-        background: "white",
-      }}
-    >
-      <div
-        style={{
-          position: "absolute",
-          top: 0,
-          right: 20,
-          fontWeight: "bold",
-          fontSize: 18,
-        }}
-      >
-        שרטוט חזית
-      </div>
-
-      <HorizontalDimensionLine
-        left={drawLeft}
-        top={35}
-        width={drawWidth}
-        label={`${overallLength} מ״מ`}
-      />
-
-      <VerticalDimensionLine
-        left={40}
-        top={drawTop}
-        height={drawHeight}
-        label={`${overallWidth} מ״מ`}
-      />
-
-      <div
-        style={{
-          position: "absolute",
-          left: 42,
-          top: drawTop,
-          width: 36,
-          height: 2,
-          background: "black",
-        }}
-      />
-      <div
-        style={{
-          position: "absolute",
-          left: 42,
-          top: drawTop + drawHeight - 2,
-          width: 36,
-          height: 2,
-          background: "black",
-        }}
-      />
-
-      <div
-        style={{
-          position: "absolute",
-          left: drawLeft,
-          top: 37,
-          width: 2,
-          height: 33,
-          background: "black",
-        }}
-      />
-      <div
-        style={{
-          position: "absolute",
-          left: drawLeft + drawWidth - 2,
-          top: 37,
-          width: 2,
-          height: 33,
-          background: "black",
-        }}
-      />
-
-      <div
-        style={{
-          position: "absolute",
-          left: drawLeft,
-          top: drawTop,
-          width: drawWidth,
-          height: drawHeight,
-          border: "4px solid black",
-          boxSizing: "border-box",
-          background: "#fafafa",
-        }}
-      />
-
-      {Array.from({ length: shadingCount }).map((_, i) => (
-        <div
-          key={`front-slat-${i}`}
-          style={{
-            position: "absolute",
-            left: drawLeft + i * slatPixelWidth,
-            top: drawTop,
-            width: 4,
-            height: drawHeight,
-            background: "#4b5563",
-          }}
-        />
-      ))}
-    </div>
-  );
-}
 
 export default function Home() {
   const [length, setLength] = useState("");
@@ -1131,11 +1009,6 @@ export default function Home() {
                   shadingCount={result.shadingPiecesPerField}
                 />
 
-                <FrontView
-                  overallLength={Number(length)}
-                  overallWidth={Number(width)}
-                  shadingCount={result.shadingPiecesPerField}
-                />
               </section>
 
               <section style={{ ...cardStyle, marginTop: 20 }}>
@@ -1547,11 +1420,6 @@ export default function Home() {
               />
 
 
-              <FrontView
-                overallLength={Number(length)}
-                overallWidth={Number(width)}
-                shadingCount={result.shadingPiecesPerField}
-              />
             </div>
           </>
         )}
